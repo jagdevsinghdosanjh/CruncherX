@@ -6,6 +6,8 @@
 # --- Core App ---
 streamlit>=1.32
 python-dotenv>=1.0
+firebase-admin
+
 
 # --- PDF Handling (Cloud-Safe) ---
 pypdf>=4.0
