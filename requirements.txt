@@ -11,6 +11,8 @@ python-dotenv>=1.0
 pypdf>=4.0
 pdf2image>=1.17
 Pillow>=10.0
+PyMuPDF>=1.24
+
 
 # --- Compression Helpers ---
 numpy>=1.26
