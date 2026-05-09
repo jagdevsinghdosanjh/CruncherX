@@ -3,9 +3,7 @@ from components.sidebar import render_sidebar
 from components.footer import render_footer
 
 render_sidebar()
-st.title("📞 Contact Support")
-
-st.write("**Email:** jagdevsinghdosanjh@gmail.com")
-st.write("**WhatsApp:** +91-8146553307")
+st.title("🔍 OCR Engine (Coming Soon)")
+st.write("OCR-based searchable PDF compression will be available in a future version of CruncherX.")
 
 render_footer()

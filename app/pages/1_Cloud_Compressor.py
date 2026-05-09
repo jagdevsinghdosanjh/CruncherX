@@ -4,10 +4,8 @@ from components.footer import render_footer
 from engines.cruncher_cloud import compress_to_target
 import os
 
-st.set_page_config(page_title="CruncherX Cloud Compressor", layout="centered")
-
 render_sidebar()
-st.title("☁ CruncherX Cloud Compressor (<7MB Target)")
+st.title("☁ Cloud Compressor")
 
 uploaded_files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True)
 
