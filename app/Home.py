@@ -6,19 +6,49 @@ from auth import get_current_user, set_current_user, logout
 # ---------------------------------------------------------
 # LOGIN VIEW
 # ---------------------------------------------------------
+
 def login_view():
-    st.set_page_config(page_title="CruncherX Login", layout="centered")
-    st.title("🔐 CruncherX Login")
+    st.title("Login")
 
-    email = st.text_input("Email")
-    name = st.text_input("Name")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-    if st.button("Continue"):
-        if email:
-            set_current_user({"email": email, "name": name or email})
+    if st.button("Login"):
+        if username == "admin" and password == "123":
+            st.session_state.logged_in = True
             st.experimental_rerun()
         else:
-            st.error("Please enter an email")
+            st.error("Invalid credentials")
+
+
+def main():
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        login_view()
+        st.stop()
+
+    st.title("Welcome to PDF CruncherX")
+    st.write("You are logged in!")
+
+
+if __name__ == "__main__":
+    main()
+
+# def login_view():
+#     st.set_page_config(page_title="CruncherX Login", layout="centered")
+#     st.title("🔐 CruncherX Login")
+
+#     email = st.text_input("Email")
+#     name = st.text_input("Name")
+
+#     if st.button("Continue"):
+#         if email:
+#             set_current_user({"email": email, "name": name or email})
+#             st.experimental_rerun()
+#         else:
+#             st.error("Please enter an email")
 
 
 # ---------------------------------------------------------
