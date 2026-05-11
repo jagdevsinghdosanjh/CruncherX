@@ -28,7 +28,7 @@ def main():
         st.subheader("Engine Logs")
         try:
             logs = supabase.table("engine_logs").select("*").order("created_at", desc=True).limit(50).execute()
-            st.dataframe(logs.data or [], use_container_width=True, height=300)
+            st.dataframe(logs.data or [], width="stretch", height=300)
         except Exception as e:
             st.error(f"Error loading engine_logs: {e}")
 
@@ -36,7 +36,7 @@ def main():
         st.subheader("Error Logs")
         try:
             errors = supabase.table("error_logs").select("*").order("created_at", desc=True).limit(50).execute()
-            st.dataframe(errors.data or [], use_container_width=True, height=300)
+            st.dataframe(errors.data or [], width="stretch", height=300)
         except Exception as e:
             st.error(f"Error loading error_logs: {e}")
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 #         try:
 #             engine_logs = supabase.table("engine_logs").select("*").order("created_at", desc=True).limit(50).execute()
 #             if engine_logs.data:
-#                 st.dataframe(engine_logs.data, use_container_width=True, height=300)
+#                 st.dataframe(engine_logs.data, width="stretch", height=300)
 #             else:
 #                 st.info("No engine logs yet.")
 #         except Exception as e:
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 #         try:
 #             error_logs = supabase.table("error_logs").select("*").order("created_at", desc=True).limit(50).execute()
 #             if error_logs.data:
-#                 st.dataframe(error_logs.data, use_container_width=True, height=300)
+#                 st.dataframe(error_logs.data, width="stretch", height=300)
 #             else:
 #                 st.success("No errors recorded.")
 #         except Exception as e:

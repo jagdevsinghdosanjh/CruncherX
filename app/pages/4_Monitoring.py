@@ -80,7 +80,7 @@ def main():
             .properties(height=300)
         )
 
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width="stretch")
     else:
         st.info("No engine logs yet.")
 
@@ -106,7 +106,7 @@ def main():
             .properties(height=300)
         )
 
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width="stretch")
     else:
         st.info("No latency data yet.")
 
@@ -118,7 +118,7 @@ def main():
     st.subheader("❌ Error Logs")
 
     if not error_logs.empty:
-        st.dataframe(error_logs, use_container_width=True, height=250)
+        st.dataframe(error_logs, width="stretch", height=250)
     else:
         st.success("No errors recorded.")
 
@@ -154,8 +154,8 @@ def main():
             .properties(title="Memory Usage (MB)", height=250)
         )
 
-        st.altair_chart(cpu_chart, use_container_width=True)
-        st.altair_chart(mem_chart, use_container_width=True)
+        st.altair_chart(cpu_chart, width="stretch")
+        st.altair_chart(mem_chart, width="stretch")
 
     else:
         st.info("No job metrics yet.")
