@@ -1,0 +1,64 @@
+# ============================
+# CruncherX — Unified Requirements
+# Cloud Engine + Local Bulldozer Engine
+# ============================
+
+# --- Core App ---
+streamlit>=1.32
+python-dotenv>=1.0
+firebase-admin
+
+
+# --- PDF Handling (Cloud-Safe) ---
+pypdf>=4.0
+pdf2image>=1.17
+Pillow>=10.0
+PyMuPDF>=1.24
+
+
+# --- Compression Helpers ---
+numpy>=1.26
+
+# --- Optional Local Bulldozer Engine (ignored by Cloud) ---
+# These packages are safe to include because Streamlit Cloud simply skips them.
+# They enable high-power compression on your local PC.
+
+pikepdf>=8.0
+reportlab>=4.0
+
+# --- Utilities ---
+requests>=2.31
+urllib3>=2.2
+certifi>=2024.2
+charset-normalizer>=3.3
+idna>=3.6
+
+# --- Streamlit Extensions ---
+st_social_media_links>=0.1.4
+
+# --- JSON & Schema ---
+jsonschema>=4.21
+jsonschema-specifications>=2023.12
+referencing>=0.34
+rpds-py>=0.18
+MarkupSafe>=2.1
+Jinja2>=3.1
+
+# --- Git Integration ---
+GitPython>=3.1
+gitdb>=4.0
+smmap>=5.0
+
+# --- Time & Date ---
+python-dateutil>=2.9
+pytz>=2024.1
+tzdata>=2024.1
+
+# --- Visualization (if needed later) ---
+altair>=5.2
+plotly>=5.18
+pydeck>=0.9
+
+# --- Packaging ---
+packaging>=23.2
+six>=1.16
