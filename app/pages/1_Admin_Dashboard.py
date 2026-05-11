@@ -39,3 +39,5 @@ def main():
             )
     else:
         st.info("No usage logs found yet.")
+
+main()
