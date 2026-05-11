@@ -36,6 +36,7 @@ def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
         status = "error"
         output_bytes = None
 
+        # Log error
         supabase.table("error_logs").insert({
             "error_message": str(e),
             "error_type": type(e).__name__
@@ -64,7 +65,7 @@ def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
         "status": status
     }).execute()
 
-    # Log CPU + RAM
+    # Log CPU + RAM usage
     cpu = psutil.cpu_percent()
     mem = psutil.virtual_memory().used / (1024 * 1024)
 

@@ -1,34 +1,46 @@
 import streamlit as st
-from components.sidebar import render_sidebar
-from components.footer import render_footer
+from backend.supabase_client import get_supabase_client
 from engines.cruncher_cloud import compress_to_target
-import os
 
-st.set_page_config(page_title="CruncherX Cloud Compressor", layout="centered")
+def main():
+    st.title("☁️ Cloud Compressor")
 
-render_sidebar()
-st.title("☁ CruncherX Cloud Compressor (<7MB Target)")
+    supabase = get_supabase_client()
 
-uploaded_files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True)
+    # Auth context (you already have this)
+    user = st.session_state.get("user")
+    user_id = user["id"] if user else None
+    org_id = user.get("org_id") if user else None
 
-if uploaded_files:
-    if st.button("Start Cloud Compression"):
-        for file in uploaded_files:
-            st.write(f"Processing: {file.name}")
-            input_path = file.name
-            with open(input_path, "wb") as f:
-                f.write(file.getvalue())
+    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
 
-            output_path, size_mb, mode = compress_to_target(input_path, target_mb=7)
+    if uploaded_file:
+        input_path = f"/tmp/{uploaded_file.name}"
+        with open(input_path, "wb") as f:
+            f.write(uploaded_file.read())
 
-            st.write(f"Compressed Size: {size_mb:.2f} MB ({mode})")
+        st.info("Compressing in cloud engine…")
 
-            with open(output_path, "rb") as f:
-                st.download_button(
-                    label=f"Download {file.name}",
-                    data=f.read(),
-                    file_name=f"crunched_{file.name}",
-                    mime="application/pdf"
-                )
+        output_path, size_mb, status = compress_to_target(
+            input_path=input_path,
+            supabase=supabase,
+            user_id=user_id,
+            org_id=org_id
+        )
 
-render_footer()
+        if status == "CloudError":
+            st.error("Cloud compression failed.")
+            return
+
+        st.success(f"Compression complete — {size_mb:.2f} MB")
+
+        with open(output_path, "rb") as f:
+            st.download_button(
+                label="Download Compressed PDF",
+                data=f.read(),
+                file_name=output_path,
+                mime="application/pdf"
+            )
+
+if __name__ == "__main__":
+    main()
