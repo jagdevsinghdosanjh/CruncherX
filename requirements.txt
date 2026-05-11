@@ -14,6 +14,7 @@ pypdf>=4.0
 pdf2image>=1.17
 Pillow>=10.0
 PyMuPDF>=1.24
+pytesseract
 
 # --- Compression Helpers ---
 numpy>=1.26
