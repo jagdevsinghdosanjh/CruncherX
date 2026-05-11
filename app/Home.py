@@ -1,77 +1,85 @@
 import streamlit as st
 from components.sidebar import render_sidebar
 from components.footer import render_footer
-from auth import get_current_user, set_current_user, logout
+from auth import (
+    get_current_user,
+    set_current_user,
+    logout,
+    supabase_sign_in,
+    supabase_sign_up,
+)
 
-# ---------------------------------------------------------
-# LOGIN VIEW
-# ---------------------------------------------------------
+st.set_page_config(page_title="CruncherX", layout="wide")
+
+
+# ---------------- LOGIN / SIGNUP VIEW ----------------
 
 def login_view():
-    st.title("Login")
+    st.title("🔐 CruncherX Login")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    tab_login, tab_signup = st.tabs(["Login", "Sign up"])
 
-    if st.button("Login"):
-        if username == "admin" and password == "123":
-            st.session_state.logged_in = True
-            st.experimental_rerun()
-        else:
-            st.error("Invalid credentials")
+    with tab_login:
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
+
+        if st.button("Login"):
+            if not email or not password:
+                st.error("Please enter both email and password.")
+            else:
+                try:
+                    res = supabase_sign_in(email, password)
+                    user = res.user
+                    if user is None:
+                        st.error("Invalid credentials.")
+                    else:
+                        set_current_user(
+                            {
+                                "email": user.email,
+                                "id": user.id,
+                                "name": user.email.split("@")[0],
+                            }
+                        )
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Login failed: {e}")
+
+    with tab_signup:
+        new_email = st.text_input("Email", key="signup_email")
+        new_password = st.text_input("Password", type="password", key="signup_password")
+
+        if st.button("Create account"):
+            if not new_email or not new_password:
+                st.error("Please enter email and password.")
+            else:
+                try:
+                    res = supabase_sign_up(new_email, new_password)
+                    user = res.user
+                    if user is None:
+                        st.info("Check your email to confirm your account.")
+                    else:
+                        st.success("Account created. You can now log in.")
+                except Exception as e:
+                    st.error(f"Sign up failed: {e}")
 
 
-def main():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
+# ---------------- DASHBOARD VIEW ----------------
 
-    if not st.session_state.logged_in:
-        login_view()
-        st.stop()
-
-    st.title("Welcome to PDF CruncherX")
-    st.write("You are logged in!")
-
-
-if __name__ == "__main__":
-    main()
-
-# def login_view():
-#     st.set_page_config(page_title="CruncherX Login", layout="centered")
-#     st.title("🔐 CruncherX Login")
-
-#     email = st.text_input("Email")
-#     name = st.text_input("Name")
-
-#     if st.button("Continue"):
-#         if email:
-#             set_current_user({"email": email, "name": name or email})
-#             st.experimental_rerun()
-#         else:
-#             st.error("Please enter an email")
-
-
-# ---------------------------------------------------------
-# MAIN DASHBOARD (AFTER LOGIN)
-# ---------------------------------------------------------
 def dashboard_view():
-    st.set_page_config(page_title="CruncherX Dashboard", layout="centered")
-
     render_sidebar()
 
     user = get_current_user()
+
     st.title("🏠 CruncherX Dashboard")
     st.write(f"Welcome, **{user['name']}** ({user['email']})")
     st.write("Smaller PDFs. Bigger Productivity.")
 
-    # Logout button (top-right)
     col1, col2 = st.columns([4, 1])
     with col2:
         if st.button("Logout"):
             logout()
-            st.experimental_rerun()
+            st.rerun()
 
-    # Navigation
     st.subheader("Choose a Mode:")
     st.page_link("pages/1_Cloud_Compressor.py", label="☁ Cloud Compressor")
     st.page_link("pages/2_Local_Compressor.py", label="💻 Local Bulldozer Mode")
@@ -82,12 +90,10 @@ def dashboard_view():
     render_footer()
 
 
-# ---------------------------------------------------------
-# APP ENTRY POINT
-# ---------------------------------------------------------
+# ---------------- ENTRY POINT ----------------
+
 def main():
     user = get_current_user()
-
     if user is None:
         login_view()
     else:
