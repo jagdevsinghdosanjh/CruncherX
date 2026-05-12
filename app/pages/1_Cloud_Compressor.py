@@ -2,77 +2,118 @@ import streamlit as st
 import uuid
 import os
 import tempfile
+from typing import Optional
+
 from components.sidebar import render_sidebar
 from components.footer import render_footer
-from engines.cruncher_local import compress_to_target
-from backend.subscription import (
+
+from engines.cruncher_cloud import compress_to_target
+from backend.subscriptions import (
     get_user_plan,
-    check_daily_limit,
     enforce_plan_rules,
-    log_usage
+    log_usage,
 )
+from backend.supabase_client import get_supabase_client
 
+
+# -----------------------------
+# Layout
+# -----------------------------
 render_sidebar()
-st.title("💻 Local Compressor")
+st.title("☁ Cloud Compressor")
 
-# Simulated user_id (replace with real auth)
-USER_ID = "demo-user-123"
-ORG_ID = None
 
-# Load user plan
-plan = get_user_plan(USER_ID)
-st.info(f"Your Plan: **{plan['name']}**")
+# -----------------------------
+# Simulated auth (replace later)
+# -----------------------------
+USER_ID: str = "demo-user-123"
+ORG_ID: str = ""  # keep as empty string instead of None to satisfy type hints
 
+
+# -----------------------------
+# Load user + plan
+# -----------------------------
+user = get_user_plan(USER_ID)
+
+if user is None:
+    st.error("User not found or no active plan. Please sign in or subscribe.")
+    st.stop()
+
+plan_name = user["plan"].get("name", "Unknown")
+st.info(f"Your Plan: **{plan_name}**")
+
+
+# -----------------------------
+# File upload
+# -----------------------------
 uploaded_files = st.file_uploader(
     "Upload PDFs",
     type=["pdf"],
     accept_multiple_files=True
 )
 
+# Supabase client (for engine + logs)
+sb = get_supabase_client()
+
+
+# -----------------------------
+# Main action
+# -----------------------------
 if uploaded_files:
-    if st.button("Start Local Compression"):
+    if st.button("Start Cloud Compression"):
 
         for file in uploaded_files:
-
             st.write(f"📄 Processing: **{file.name}**")
 
-            # 1. Enforce subscription rules
-            allowed, reason = enforce_plan_rules(plan, job_type="compression")
-            if not allowed:
-                st.error(reason)
+            # 1. Enforce plan rules (includes expiry + daily limit)
+            rules = enforce_plan_rules(user)
+            if not rules.get("allowed", False):
+                st.error(rules.get("reason", "Not allowed by plan."))
                 continue
 
-            # 2. Daily limit check
-            if not check_daily_limit(USER_ID):
-                st.error("❌ Daily limit reached for Free plan.")
-                continue
-
-            # 3. Save file safely
+            # 2. Save to temp file
             temp_dir = tempfile.gettempdir()
             unique_name = f"{uuid.uuid4()}_{file.name}"
-            input_path = os.path.join(temp_dir, unique_name)
+            input_path: str = os.path.join(temp_dir, unique_name)
 
             with open(input_path, "wb") as f:
                 f.write(file.getvalue())
 
-            # 4. Compress with spinner
-            with st.spinner("Compressing..."):
+            output_path: Optional[str] = None
+            size_mb: Optional[float] = None
+            mode: Optional[str] = None
+
+            # 3. Cloud compression
+            with st.spinner("Compressing in cloud..."):
                 try:
-                    output_path, size_mb, mode = compress_to_target(
+                    # Expected signature:
+                    # compress_to_target(input_path, supabase, user_id, org_id)
+                    result = compress_to_target(
                         input_path,
-                        target_mb=7,
-                        user_plan=plan,
-                        user_id=USER_ID,
-                        org_id=ORG_ID
+                        sb,
+                        USER_ID,
+                        ORG_ID,
                     )
+                    # Be explicit in case the engine returns a tuple with Optional types
+                    output_path, size_mb, mode = result
                 except Exception as e:
-                    st.error(f"Compression failed: {e}")
+                    st.error(f"Cloud compression failed: {e}")
+                    # Cleanup input file even on failure
+                    if os.path.exists(input_path):
+                        os.remove(input_path)
                     continue
 
-            # 5. Show results
+            # Guard against None for type checker and safety
+            if output_path is None or size_mb is None or mode is None:
+                st.error("Cloud compression returned invalid result.")
+                if os.path.exists(input_path):
+                    os.remove(input_path)
+                continue
+
+            # 4. Show result
             st.success(f"Compressed Size: {size_mb:.2f} MB ({mode})")
 
-            # 6. Download button
+            # 5. Download button
             with open(output_path, "rb") as f:
                 st.download_button(
                     label=f"⬇ Download {file.name}",
@@ -81,50 +122,161 @@ if uploaded_files:
                     mime="application/pdf"
                 )
 
-            # 7. Log usage
-            log_usage(
-                user_id=USER_ID,
-                org_id=ORG_ID,
-                action="local_compression",
-                bytes_in=os.path.getsize(input_path),
-                bytes_out=os.path.getsize(output_path)
-            )
+            # 6. Log usage (for daily limit + analytics)
+            try:
+                bytes_in = os.path.getsize(input_path)
+                bytes_out = os.path.getsize(output_path)
 
-            # 8. Cleanup
-            os.remove(input_path)
-            os.remove(output_path)
+                log_usage(
+                    user_id=USER_ID,
+                    org_id=ORG_ID,  # now always a str
+                    action="compress",
+                    bytes_in=bytes_in,
+                    bytes_out=bytes_out,
+                )
+            except Exception as e:
+                st.warning(f"Usage logging failed: {e}")
+
+            # 7. Cleanup temp files
+            try:
+                if os.path.exists(input_path):
+                    os.remove(input_path)
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+            except Exception:
+                pass
 
 render_footer()
 
 # import streamlit as st
+# import uuid
+# import os
+# import tempfile
+
 # from components.sidebar import render_sidebar
 # from components.footer import render_footer
-# from engines.cruncher_cloud import compress_to_target
-# import os
 
+# from engines.cruncher_cloud import compress_to_target
+# from backend.subscriptions import (
+#     get_user_plan,
+#     enforce_plan_rules,
+#     log_usage,
+# )
+# from backend.supabase_client import get_supabase_client
+
+
+# # -----------------------------
+# # Layout
+# # -----------------------------
 # render_sidebar()
 # st.title("☁ Cloud Compressor")
 
-# uploaded_files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True)
 
+# # -----------------------------
+# # Simulated auth (replace later)
+# # -----------------------------
+# USER_ID = "demo-user-123"
+# ORG_ID = None
+
+
+# # -----------------------------
+# # Load user + plan
+# # -----------------------------
+# user = get_user_plan(USER_ID)
+
+# if user is None:
+#     st.error("User not found or no active plan. Please sign in or subscribe.")
+#     st.stop()
+
+# plan_name = user["plan"].get("name", "Unknown")
+# st.info(f"Your Plan: **{plan_name}**")
+
+
+# # -----------------------------
+# # File upload
+# # -----------------------------
+# uploaded_files = st.file_uploader(
+#     "Upload PDFs",
+#     type=["pdf"],
+#     accept_multiple_files=True
+# )
+
+# # Supabase client (for engine + logs)
+# sb = get_supabase_client()
+
+
+# # -----------------------------
+# # Main action
+# # -----------------------------
 # if uploaded_files:
 #     if st.button("Start Cloud Compression"):
+
 #         for file in uploaded_files:
-#             st.write(f"Processing: {file.name}")
-#             input_path = file.name
+#             st.write(f"📄 Processing: **{file.name}**")
+
+#             # 1. Enforce plan rules (includes expiry + daily limit)
+#             rules = enforce_plan_rules(user)
+#             if not rules.get("allowed", False):
+#                 st.error(rules.get("reason", "Not allowed by plan."))
+#                 continue
+
+#             # 2. Save to temp file
+#             temp_dir = tempfile.gettempdir()
+#             unique_name = f"{uuid.uuid4()}_{file.name}"
+#             input_path = os.path.join(temp_dir, unique_name)
+
 #             with open(input_path, "wb") as f:
 #                 f.write(file.getvalue())
 
-#             output_path, size_mb, mode = compress_to_target(input_path, target_mb=7)
+#             # 3. Cloud compression
+#             with st.spinner("Compressing in cloud..."):
+#                 try:
+#                     # Cloud engine signature:
+#                     # compress_to_target(input_path, supabase, user_id, org_id)
+#                     output_path, size_mb, mode = compress_to_target(
+#                         input_path,
+#                         sb,
+#                         USER_ID,
+#                         ORG_ID,
+#                     )
+#                 except Exception as e:
+#                     st.error(f"Cloud compression failed: {e}")
+#                     # Cleanup input file even on failure
+#                     if os.path.exists(input_path):
+#                         os.remove(input_path)
+#                     continue
 
-#             st.write(f"Compressed Size: {size_mb:.2f} MB ({mode})")
+#             # 4. Show result
+#             st.success(f"Compressed Size: {size_mb:.2f} MB ({mode})")
 
+#             # 5. Download button
 #             with open(output_path, "rb") as f:
 #                 st.download_button(
-#                     label=f"Download {file.name}",
+#                     label=f"⬇ Download {file.name}",
 #                     data=f.read(),
 #                     file_name=f"crunched_{file.name}",
 #                     mime="application/pdf"
 #                 )
+
+#             # 6. Log usage (for daily limit + analytics)
+#             try:
+#                 log_usage(
+#                     user_id=USER_ID,
+#                     org_id=ORG_ID,
+#                     action="compress",
+#                     bytes_in=os.path.getsize(input_path),
+#                     bytes_out=os.path.getsize(output_path),
+#                 )
+#             except Exception as e:
+#                 st.warning(f"Usage logging failed: {e}")
+
+#             # 7. Cleanup temp files
+#             try:
+#                 if os.path.exists(input_path):
+#                     os.remove(input_path)
+#                 if os.path.exists(output_path):
+#                     os.remove(output_path)
+#             except Exception:
+#                 pass
 
 # render_footer()
