@@ -8,6 +8,8 @@ from auth import (
     supabase_sign_in,
     supabase_sign_up,
 )
+from backend.self_heal import heal_project
+heal_project()
 
 st.set_page_config(page_title="CruncherX", layout="wide")
 
