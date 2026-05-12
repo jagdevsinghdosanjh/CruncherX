@@ -50,8 +50,8 @@ def run():
         # -----------------------------
         # Handle subscription errors
         # -----------------------------
-        if status not in ["Bulldozer", "success"]:
-            st.error(status)  # status contains the reason (e.g., "Daily limit reached")
+        if output_path is None:
+            st.error(status)  # status contains the reason
             return
 
         # -----------------------------
@@ -59,6 +59,7 @@ def run():
         # -----------------------------
         st.success(f"Done — {size_mb:.2f} MB")
 
+        # Pylance-safe: output_path is guaranteed to be str here
         with open(output_path, "rb") as f:
             st.download_button(
                 label="Download Compressed PDF",
