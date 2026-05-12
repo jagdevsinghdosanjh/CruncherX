@@ -5,7 +5,7 @@ import streamlit as st
 
 @st.cache_resource
 def supabase():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_ANON_KEY"])
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 
 def get_user_plan(user_id):
