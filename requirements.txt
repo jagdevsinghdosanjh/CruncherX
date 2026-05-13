@@ -7,14 +7,13 @@
 streamlit==1.32.0
 python-dotenv==1.0.1
 
-# --- Supabase (Stable versions for Python 3.12) ---
+# --- Supabase (Stable versions for Python 3.11) ---
 supabase==2.3.5
 gotrue==2.4.2
 postgrest==0.15.0
 realtime==1.0.0
 storage3==0.5.3
-httpx==0.25.2
-
+httpx==0.24.1
 
 # --- PDF Handling (Cloud-Safe) ---
 pypdf==4.2.0
