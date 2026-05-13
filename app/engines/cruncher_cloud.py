@@ -60,7 +60,7 @@ def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
     # Log engine run
     log_engine_run(
         user_id=user_id,
-        org_id=org_id,
+        org_id= org_id if org_id else None,
         engine_type="cloud",
         input_bytes=os.path.getsize(input_path),
         output_bytes=output_bytes,

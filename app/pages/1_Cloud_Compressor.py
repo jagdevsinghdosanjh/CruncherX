@@ -2,6 +2,8 @@ import streamlit as st
 import uuid
 import os
 import tempfile
+import gc
+import time
 
 from components.sidebar import render_sidebar
 from components.footer import render_footer
@@ -27,7 +29,8 @@ if user is None:
     st.switch_page("Home.py")
 
 USER_ID = user["id"]
-ORG_ID = ""   # You can fill this later if orgs are enabled
+ORG_ID=None
+#ORG_ID = ""   # Reserved for future org support
 
 sb = get_supabase_client()
 
@@ -71,6 +74,10 @@ if uploaded_files:
             with open(input_path, "wb") as f:
                 f.write(file.getvalue())
 
+            # Release Streamlit's file handle and force GC (Windows lock fix)
+            file = None
+            gc.collect()
+
             # Run cloud engine
             with st.spinner("Compressing in cloud..."):
                 try:
@@ -82,40 +89,72 @@ if uploaded_files:
                     )
                 except Exception as e:
                     st.error(f"Cloud compression failed: {e}")
+                    # Best-effort cleanup
                     if os.path.exists(input_path):
-                        os.remove(input_path)
+                        try:
+                            os.remove(input_path)
+                        except PermissionError:
+                            time.sleep(0.2)
+                            try:
+                                os.remove(input_path)
+                            except:
+                                pass
                     continue
 
             if output_path is None:
                 st.error("Cloud engine returned no output.")
+                # Cleanup input file
+                if os.path.exists(input_path):
+                    try:
+                        os.remove(input_path)
+                    except PermissionError:
+                        time.sleep(0.2)
+                        try:
+                            os.remove(input_path)
+                        except:
+                            pass
                 continue
 
             # Show result
             st.success(f"Compressed Size: {size_mb:.2f} MB ({mode})")
 
             # Download button
-            with open(output_path, "rb") as f:
+            with open(output_path, "rb") as f_out:
                 st.download_button(
-                    label=f"⬇ Download {file.name}",
-                    data=f.read(),
-                    file_name=f"crunched_{file.name}",
+                    label=f"⬇ Download {file.name if file else 'compressed.pdf'}",
+                    data=f_out.read(),
+                    file_name=f"crunched_{unique_name.split('_', 1)[-1]}",
                     mime="application/pdf"
                 )
 
             # Log usage
-            log_usage(
-                user_id=USER_ID,
-                org_id=ORG_ID,
-                action="compress",
-                bytes_in=os.path.getsize(input_path),
-                bytes_out=os.path.getsize(output_path),
-            )
+            try:
+                log_usage(
+                    user_id=USER_ID,
+                    org_id=ORG_ID,
+                    action="compress",
+                    bytes_in=os.path.getsize(input_path),
+                    bytes_out=os.path.getsize(output_path),
+                )
+            except Exception as e:
+                st.warning(f"Usage logging failed: {e}")
 
-            # Cleanup
+            # Cleanup input/output files with Windows-safe handling
             if os.path.exists(input_path):
-                os.remove(input_path)
+                try:
+                    os.remove(input_path)
+                except PermissionError:
+                    time.sleep(0.2)
+                    try:
+                        os.remove(input_path)
+                    except:
+                        pass
+
             if os.path.exists(output_path):
-                os.remove(output_path)
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
 
 
 # ---------------- FOOTER ----------------
