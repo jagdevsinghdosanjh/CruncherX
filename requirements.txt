@@ -1,5 +1,5 @@
 # ============================
-# CruncherX — Unified Requirements
+# CruncherX — Unified Requirements (Stable)
 # Cloud Engine + Local Bulldozer Engine
 # ============================
 
@@ -7,11 +7,13 @@
 streamlit==1.32.0
 python-dotenv==1.0.1
 
-# --- Supabase (Correct versions for Python 3.12) ---
-supabase==2.4.3
+# --- Supabase (Stable versions for Python 3.12) ---
+supabase==2.3.5
+gotrue==2.4.2
 postgrest==0.15.0
 realtime==1.0.0
 storage3==0.5.3
+httpx==0.27.0
 
 # --- PDF Handling (Cloud-Safe) ---
 pypdf==4.2.0

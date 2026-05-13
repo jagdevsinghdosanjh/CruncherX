@@ -4,8 +4,9 @@ from supabase import create_client
 @st.cache_resource
 def get_supabase_client():
     url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
+    key = st.secrets["SUPABASE_ANON_KEY"]  # FIXED KEY NAME
     return create_client(url, key)
+
 
 
 # from supabase import create_client

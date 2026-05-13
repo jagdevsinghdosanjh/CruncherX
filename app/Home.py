@@ -1,29 +1,3 @@
-# import streamlit as st
-
-# # ---------------------------------------------------------
-# # MUST BE FIRST STREAMLIT COMMAND
-# # ---------------------------------------------------------
-# st.set_page_config(page_title="CruncherX", layout="wide")
-
-# # ---------------------------------------------------------
-# # IMPORTS
-# # ---------------------------------------------------------
-# from components.sidebar import render_sidebar
-# from components.footer import render_footer
-# from auth import (
-#     get_current_user,
-#     set_current_user,
-#     logout,
-#     supabase_sign_in,
-#     supabase_sign_up,
-# )
-# from backend.supabase_client import get_supabase_client
-
-
-# # ---------------------------------------------------------
-# # DEBUG: Confirm secrets are loading
-# # ---------------------------------------------------------
-# st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_ANON_KEY"))
 import streamlit as st
 from components.sidebar import render_sidebar
 from components.footer import render_footer
