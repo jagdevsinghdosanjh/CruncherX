@@ -16,7 +16,7 @@ from backend.supabase_client import get_supabase_client
 st.set_page_config(page_title="CruncherX", layout="wide")
 
 # Debug: Check secrets
-st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_ANON_KEY"))
+st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_KEY"))
 
 
 # ---------------------------------------------------------
