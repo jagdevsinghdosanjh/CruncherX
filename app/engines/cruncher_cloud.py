@@ -5,15 +5,6 @@ import os
 import time
 from backend.usage_logger import log_engine_run
 
-log_engine_run(
-    user_id=USER_ID,
-    org_id=ORG_ID,
-    engine_type="cloud",
-    input_bytes=len(original_pdf),
-    output_bytes=len(compressed_pdf),
-    status="success"
-)
-
 
 def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
     start = time.time()
@@ -49,7 +40,6 @@ def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
         status = "error"
         output_bytes = None
 
-        # Log error
         supabase.table("error_logs").insert({
             "error_message": str(e),
             "error_type": type(e).__name__
@@ -68,15 +58,14 @@ def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
     }).execute()
 
     # Log engine run
-    supabase.table("engine_logs").insert({
-        "user_id": user_id,
-        "org_id": org_id,
-        "engine_type": "cloud",
-        "input_bytes": os.path.getsize(input_path),
-        "output_bytes": output_bytes,
-        "compression_ratio": (output_bytes / os.path.getsize(input_path)) if output_bytes else None,
-        "status": status
-    }).execute()
+    log_engine_run(
+        user_id=user_id,
+        org_id=org_id,
+        engine_type="cloud",
+        input_bytes=os.path.getsize(input_path),
+        output_bytes=output_bytes,
+        status=status
+    )
 
     size_mb = output_bytes / (1024 * 1024)
     return output_path, size_mb, "CloudSafe"
