@@ -3,6 +3,17 @@ from PIL import Image
 import io
 import os
 import time
+from backend.usage_logger import log_engine_run
+
+log_engine_run(
+    user_id=USER_ID,
+    org_id=ORG_ID,
+    engine_type="cloud",
+    input_bytes=len(original_pdf),
+    output_bytes=len(compressed_pdf),
+    status="success"
+)
+
 
 def compress_to_target(input_path, supabase, user_id, org_id, target_mb=7):
     start = time.time()
