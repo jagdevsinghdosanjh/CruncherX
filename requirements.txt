@@ -7,9 +7,9 @@
 streamlit==1.32.0
 python-dotenv==1.0.1
 
-# --- Supabase (PINNED for Cloud stability) ---
+# --- Supabase (Correct versions for Python 3.12) ---
 supabase==2.4.3
-postgrest==0.10.6
+postgrest==0.15.0
 realtime==1.0.0
 storage3==0.5.3
 
