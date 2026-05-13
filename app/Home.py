@@ -14,6 +14,9 @@ from backend.supabase_client import get_supabase_client
 # MUST BE FIRST STREAMLIT COMMAND
 # ---------------------------------------------------------
 st.set_page_config(page_title="CruncherX", layout="wide")
+# st.session_state.clear()
+# st.cache_resource.clear()
+# st.cache_data.clear()
 
 # ---------------------------------------------------------
 # INIT SUPABASE CLIENT
