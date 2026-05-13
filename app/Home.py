@@ -15,10 +15,6 @@ from backend.supabase_client import get_supabase_client
 # ---------------------------------------------------------
 st.set_page_config(page_title="CruncherX", layout="wide")
 
-# Debug: Check secrets
-st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_KEY"))
-
-
 # ---------------------------------------------------------
 # INIT SUPABASE CLIENT
 # ---------------------------------------------------------
@@ -27,7 +23,6 @@ sb = get_supabase_client()
 if sb is None:
     st.error("Supabase client failed to initialize. Check secrets.toml.")
     st.stop()
-
 
 FREE_PLAN_ID = "a32d6731-8622-42df-b375-7309f478eab1"
 
