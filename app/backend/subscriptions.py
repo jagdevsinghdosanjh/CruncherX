@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any
 import streamlit as st
 from backend.supabase_client import get_supabase_client
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 
 # ---------------------------------------------------------
 # Supabase Client (cached)
