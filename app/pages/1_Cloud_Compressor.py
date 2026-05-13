@@ -8,7 +8,7 @@ import time
 from components.sidebar import render_sidebar
 from components.footer import render_footer
 
-from engines.cruncher_local import compress_to_target_local
+from engines.cruncher_cloud import compress_to_target
 
 
 # ---------------- UI ----------------
