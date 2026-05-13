@@ -1,6 +1,6 @@
 import streamlit as st
 from backend.supabase_client import get_supabase_client
-from engines.cruncher_local import compress_to_target
+from engines.cruncher_local import compress_to_target_local
 from components.sidebar import render_sidebar
 from components.footer import render_footer
 
