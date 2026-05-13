@@ -1,19 +1,25 @@
 from datetime import datetime, date
-from supabase import create_client
-import streamlit as st
 from typing import Optional, Dict, Any
+import streamlit as st
+from supabase import create_client
 
 FREE_PLAN_ID = "a32d6731-8622-42df-b375-7309f478eab1"
 
+
+# ---------------------------------------------------------
+# Supabase Client (cached)
+# ---------------------------------------------------------
 @st.cache_resource
 def supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 
+# ---------------------------------------------------------
+# 1. Get User + Plan (SDK‑SAFE)
+# ---------------------------------------------------------
 def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
     sb = supabase()
 
-    # profiles instead of users + maybe_single to avoid PGRST116
     user_res = (
         sb.table("profiles")
         .select("*")
@@ -21,7 +27,13 @@ def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
         .maybe_single()
         .execute()
     )
-    user = user_res.data
+
+    # New SDK returns None instead of response object
+    if user_res is None:
+        return None
+
+    # Some SDK versions return dict, some return object with .data
+    user = getattr(user_res, "data", user_res)
 
     if not isinstance(user, dict):
         return None
@@ -34,10 +46,14 @@ def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
         sb.table("subscription_plans")
         .select("*")
         .eq("id", plan_id)
-        .single()
+        .maybe_single()
         .execute()
     )
-    plan = plan_res.data
+
+    if plan_res is None:
+        return None
+
+    plan = getattr(plan_res, "data", plan_res)
 
     if not isinstance(plan, dict):
         return None
@@ -51,6 +67,9 @@ def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
+# ---------------------------------------------------------
+# 2. Check if plan expired
+# ---------------------------------------------------------
 def is_plan_expired(user: Dict[str, Any]) -> bool:
     expiry = user.get("plan_expiry")
     if not expiry:
@@ -64,6 +83,9 @@ def is_plan_expired(user: Dict[str, Any]) -> bool:
     return expiry_dt < datetime.utcnow()
 
 
+# ---------------------------------------------------------
+# 3. Daily Limit Check
+# ---------------------------------------------------------
 def check_daily_limit(user_id: str) -> int:
     sb = supabase()
 
@@ -78,12 +100,16 @@ def check_daily_limit(user_id: str) -> int:
         .execute()
     )
 
-    if not isinstance(res.data, list):
+    data = getattr(res, "data", res)
+    if not isinstance(data, list):
         return 0
 
-    return len(res.data)
+    return len(data)
 
 
+# ---------------------------------------------------------
+# 4. Enforce Plan Rules
+# ---------------------------------------------------------
 def enforce_plan_rules(user: Dict[str, Any]) -> Dict[str, Any]:
     plan = user["plan"].get("name")
 
@@ -96,7 +122,13 @@ def enforce_plan_rules(user: Dict[str, Any]) -> Dict[str, Any]:
     if plan == "Free":
         if check_daily_limit(user["id"]) >= 5:
             return {"allowed": False, "reason": "Daily limit reached (5/day)."}
-        return {"allowed": True, "watermark": True, "priority": False, "bulk": False, "api": False}
+        return {
+            "allowed": True,
+            "watermark": True,
+            "priority": False,
+            "bulk": False,
+            "api": False,
+        }
 
     if plan == "Basic":
         return {"allowed": True, "watermark": False, "priority": False, "bulk": True, "api": False}
@@ -110,6 +142,9 @@ def enforce_plan_rules(user: Dict[str, Any]) -> Dict[str, Any]:
     return {"allowed": False, "reason": "Unknown plan."}
 
 
+# ---------------------------------------------------------
+# 5. Log Usage
+# ---------------------------------------------------------
 def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: int):
     sb = supabase()
 
@@ -121,15 +156,18 @@ def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: 
         "bytes_out": bytes_out,
     }).execute()
 
+
+
 # from datetime import datetime, date
-# from supabase import create_client
-# import streamlit as st
 # from typing import Optional, Dict, Any
+# import streamlit as st
+# from supabase import create_client
 
 # FREE_PLAN_ID = "a32d6731-8622-42df-b375-7309f478eab1"
 
+
 # # ---------------------------------------------------------
-# # Supabase Client
+# # Supabase Client (cached)
 # # ---------------------------------------------------------
 # @st.cache_resource
 # def supabase():
@@ -137,20 +175,26 @@ def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: 
 
 
 # # ---------------------------------------------------------
-# # 1. Get User + Plan (UPDATED FOR profiles TABLE)
+# # 1. Get User + Plan (SDK‑SAFE)
 # # ---------------------------------------------------------
 # def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
 #     sb = supabase()
 
-#     # 🔥 FIX: Use profiles instead of users
+#     # profiles table (correct)
 #     user_res = (
 #         sb.table("profiles")
 #         .select("*")
 #         .eq("id", user_id)
-#         .single()
+#         .maybe_single()
 #         .execute()
 #     )
-#     user = user_res.data
+
+#     # New SDK returns None instead of response object
+#     if user_res is None:
+#         return None
+
+#     # Some SDK versions return dict, some return object with .data
+#     user = getattr(user_res, "data", user_res)
 
 #     if not isinstance(user, dict):
 #         return None
@@ -159,15 +203,19 @@ def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: 
 #     if not plan_id:
 #         return None
 
-#     # subscription_plans table is still correct
+#     # subscription_plans table
 #     plan_res = (
 #         sb.table("subscription_plans")
 #         .select("*")
 #         .eq("id", plan_id)
-#         .single()
+#         .maybe_single()
 #         .execute()
 #     )
-#     plan = plan_res.data
+
+#     if plan_res is None:
+#         return None
+
+#     plan = getattr(plan_res, "data", plan_res)
 
 #     if not isinstance(plan, dict):
 #         return None
@@ -214,10 +262,11 @@ def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: 
 #         .execute()
 #     )
 
-#     if not isinstance(res.data, list):
+#     data = getattr(res, "data", res)
+#     if not isinstance(data, list):
 #         return 0
 
-#     return len(res.data)
+#     return len(data)
 
 
 # # ---------------------------------------------------------
@@ -235,7 +284,13 @@ def log_usage(user_id: str, org_id: str, action: str, bytes_in: int, bytes_out: 
 #     if plan == "Free":
 #         if check_daily_limit(user["id"]) >= 5:
 #             return {"allowed": False, "reason": "Daily limit reached (5/day)."}
-#         return {"allowed": True, "watermark": True, "priority": False, "bulk": False, "api": False}
+#         return {
+#             "allowed": True,
+#             "watermark": True,
+#             "priority": False,
+#             "bulk": False,
+#             "api": False,
+#         }
 
 #     if plan == "Basic":
 #         return {"allowed": True, "watermark": False, "priority": False, "bulk": True, "api": False}
