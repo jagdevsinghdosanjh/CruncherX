@@ -1,3 +1,29 @@
+# import streamlit as st
+
+# # ---------------------------------------------------------
+# # MUST BE FIRST STREAMLIT COMMAND
+# # ---------------------------------------------------------
+# st.set_page_config(page_title="CruncherX", layout="wide")
+
+# # ---------------------------------------------------------
+# # IMPORTS
+# # ---------------------------------------------------------
+# from components.sidebar import render_sidebar
+# from components.footer import render_footer
+# from auth import (
+#     get_current_user,
+#     set_current_user,
+#     logout,
+#     supabase_sign_in,
+#     supabase_sign_up,
+# )
+# from backend.supabase_client import get_supabase_client
+
+
+# # ---------------------------------------------------------
+# # DEBUG: Confirm secrets are loading
+# # ---------------------------------------------------------
+# st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_ANON_KEY"))
 import streamlit as st
 from components.sidebar import render_sidebar
 from components.footer import render_footer
@@ -9,15 +35,25 @@ from auth import (
     supabase_sign_up,
 )
 from backend.supabase_client import get_supabase_client
-st.write("KEY LOADED:", st.secrets.get("SUPABASE_KEY"))
-
 
 # ---------------------------------------------------------
 # MUST BE FIRST STREAMLIT COMMAND
 # ---------------------------------------------------------
 st.set_page_config(page_title="CruncherX", layout="wide")
 
+# Debug: Check secrets
+st.write("SUPABASE KEY LOADED:", st.secrets.get("SUPABASE_ANON_KEY"))
+
+
+# ---------------------------------------------------------
+# INIT SUPABASE CLIENT
+# ---------------------------------------------------------
 sb = get_supabase_client()
+
+if sb is None:
+    st.error("Supabase client failed to initialize. Check secrets.toml.")
+    st.stop()
+
 
 FREE_PLAN_ID = "a32d6731-8622-42df-b375-7309f478eab1"
 
@@ -35,7 +71,9 @@ def ensure_user_row(user):
         .execute()
     )
 
-    if not res.data:
+    data = getattr(res, "data", res)
+
+    if not data:
         sb.table("profiles").insert({
             "id": user.id,
             "email": user.email,
@@ -54,18 +92,21 @@ if "access_token" in query_params:
     token = query_params["access_token"]
     refresh = query_params.get("refresh_token", "")
 
-    # 🔥 Correct Supabase session syntax
+    # Set Supabase session
     sb.auth.set_session(token, refresh)
 
-    user = sb.auth.get_user().user
+    auth_user = sb.auth.get_user()
+    user = getattr(auth_user, "user", None)
 
     if user:
         ensure_user_row(user)
+
         set_current_user({
             "email": user.email,
             "id": user.id,
             "name": user.email.split("@")[0],
         })
+
         st.success("Email confirmed! You are now logged in.")
         st.rerun()
 
@@ -89,12 +130,12 @@ def login_view():
             else:
                 try:
                     res = supabase_sign_in(email, password)
-                    user = res.user
+                    user = getattr(res, "user", None)
 
                     if user is None:
                         st.error("Invalid credentials.")
                     else:
-                        # 🔥 Correct session setting
+                        # Set session
                         sb.auth.set_session(
                             res.session.access_token,
                             res.session.refresh_token
@@ -136,6 +177,10 @@ def dashboard_view():
 
     user = get_current_user()
 
+    if user is None:
+        st.error("Session expired. Please log in again.")
+        st.rerun()
+
     st.title("🏠 CruncherX Dashboard")
     st.write(f"Welcome, **{user['name']}** ({user['email']})")
     st.write("Smaller PDFs. Bigger Productivity.")
@@ -161,10 +206,12 @@ def dashboard_view():
 # ---------------------------------------------------------
 def main():
     user = get_current_user()
+
     if user is None:
         login_view()
-    else:
-        dashboard_view()
+        return
+
+    dashboard_view()
 
 
 if __name__ == "__main__":
