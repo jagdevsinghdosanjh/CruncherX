@@ -1,8 +1,7 @@
-from datetime import datetime, date
 from typing import Optional, Dict, Any
 import streamlit as st
 from backend.supabase_client import get_supabase_client
-
+from datetime import datetime, timezone
 
 # ---------------------------------------------------------
 # Supabase Client (cached)
@@ -68,17 +67,34 @@ def get_user_plan(user_id: str) -> Optional[Dict[str, Any]]:
 # ---------------------------------------------------------
 # 2. Check if plan expired
 # ---------------------------------------------------------
-def is_plan_expired(user: Dict[str, Any]) -> bool:
+def is_plan_expired(user):
     expiry = user.get("plan_expiry")
     if not expiry:
         return True
 
-    try:
-        expiry_dt = datetime.fromisoformat(expiry.replace("Z", ""))
-    except Exception:
-        return True
+    # Convert Supabase timestamp to aware datetime
+    expiry_dt = datetime.fromisoformat(expiry)
 
-    return expiry_dt < datetime.utcnow()
+    # Ensure UTC timezone awareness
+    if expiry_dt.tzinfo is None:
+        expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
+
+    # Compare with aware UTC now
+    now_utc = datetime.now(timezone.utc)
+
+    return expiry_dt < now_utc
+
+# def is_plan_expired(user: Dict[str, Any]) -> bool:
+#     expiry = user.get("plan_expiry")
+#     if not expiry:
+#         return True
+
+#     try:
+#         expiry_dt = datetime.fromisoformat(expiry.replace("Z", ""))
+#     except Exception:
+#         return True
+
+#     return expiry_dt < datetime.utcnow()
 
 
 # ---------------------------------------------------------

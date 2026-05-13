@@ -29,7 +29,9 @@ def main():
     st.title("🛠 Admin Dashboard")
 
     supabase = get_supabase_client()
-    stats = get_basic_stats()   # FIXED — no argument
+
+    # FIXED: get_basic_stats() takes NO arguments
+    stats = get_basic_stats()
 
     st.markdown("### 🔍 System Overview")
 
@@ -40,7 +42,6 @@ def main():
     c4.metric("Total Errors", stats.get("total_errors", 0))
 
     st.markdown("---")
-
     st.markdown("### 📦 Raw Tables")
 
     col_left, col_right = st.columns(2)
