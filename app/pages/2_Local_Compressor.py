@@ -1,71 +1,112 @@
 import streamlit as st
-from backend.supabase_client import get_supabase_client
-from engines.cruncher_local import compress_to_target
+import uuid
+import os
+import tempfile
+import gc
+import time
+
 from components.sidebar import render_sidebar
 from components.footer import render_footer
 
+from engines.cruncher_local import compress_to_target_local
 
-def run():
-    st.header("💻 Local Compressor (Bulldozer Mode)")
 
-    render_sidebar()
+# ---------------- UI ----------------
+render_sidebar()
+st.title("💻 Local Compressor")
 
-    supabase = get_supabase_client()
 
-    # -----------------------------
-    # Load user session
-    # -----------------------------
-    user = st.session_state.get("user")
+# ---------------- FILE UPLOAD ----------------
+uploaded_files = st.file_uploader(
+    "Upload PDFs",
+    type=["pdf"],
+    accept_multiple_files=True
+)
 
-    if not user:
-        st.error("You must be logged in to use the Local Compressor.")
-        return
 
-    user_id = user["id"]
-    org_id = user.get("org_id")
+# ---------------- PROCESSING ----------------
+if uploaded_files:
+    if st.button("Start Local Compression"):
 
-    # -----------------------------
-    # File upload
-    # -----------------------------
-    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+        for file in uploaded_files:
+            st.write(f"📄 Processing: **{file.name}**")
 
-    if uploaded_file:
-        input_path = f"/tmp/{uploaded_file.name}"
-        with open(input_path, "wb") as f:
-            f.write(uploaded_file.read())
+            # Save uploaded file to temp
+            temp_dir = tempfile.gettempdir()
+            unique_name = f"{uuid.uuid4()}_{file.name}"
+            input_path = os.path.join(temp_dir, unique_name)
 
-        st.info("Running Bulldozer Engine…")
+            with open(input_path, "wb") as f:
+                f.write(file.getvalue())
 
-        # -----------------------------
-        # Call subscription-aware engine
-        # -----------------------------
-        output_path, size_mb, status = compress_to_target(
-            input_path=input_path,
-            user_id=user_id,
-            org_id=org_id,
-            supabase=supabase,
-            is_bulk=False
-        )
+            # Release Streamlit's file handle and force GC (Windows lock fix)
+            file = None
+            gc.collect()
 
-        # -----------------------------
-        # Handle subscription errors
-        # -----------------------------
-        if output_path is None:
-            st.error(status)  # status contains the reason
-            return
+            # Run local engine
+            with st.spinner("Compressing locally..."):
+                try:
+                    output_path, size_mb, mode = compress_to_target_local(
+                        input_path,
+                        target_mb=7
+                    )
+                except Exception as e:
+                    st.error(f"Local compression failed: {e}")
+                    # Best-effort cleanup
+                    if os.path.exists(input_path):
+                        try:
+                            os.remove(input_path)
+                        except PermissionError:
+                            time.sleep(0.2)
+                            try:
+                                os.remove(input_path)
+                            except:
+                                pass
+                    continue
 
-        # -----------------------------
-        # Success
-        # -----------------------------
-        st.success(f"Done — {size_mb:.2f} MB")
+            if output_path is None:
+                st.error("Local engine returned no output.")
+                # Cleanup input file
+                if os.path.exists(input_path):
+                    try:
+                        os.remove(input_path)
+                    except PermissionError:
+                        time.sleep(0.2)
+                        try:
+                            os.remove(input_path)
+                        except:
+                            pass
+                continue
 
-        # Pylance-safe: output_path is guaranteed to be str here
-        with open(output_path, "rb") as f:
-            st.download_button(
-                label="Download Compressed PDF",
-                data=f.read(),
-                file_name=output_path,
-                mime="application/pdf"
-            )
+            # Show result
+            st.success(f"Compressed Size: {size_mb:.2f} MB ({mode})")
 
-    render_footer()
+            # Download button
+            with open(output_path, "rb") as f_out:
+                st.download_button(
+                    label=f"⬇ Download {unique_name.split('_', 1)[-1]}",
+                    data=f_out.read(),
+                    file_name=f"local_{unique_name.split('_', 1)[-1]}",
+                    mime="application/pdf"
+                )
+
+            # Cleanup input/output files with Windows-safe handling
+            if os.path.exists(input_path):
+                try:
+                    os.remove(input_path)
+                except PermissionError:
+                    time.sleep(0.2)
+                    try:
+                        os.remove(input_path)
+                    except:
+                        pass
+
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
+
+
+# ---------------- FOOTER ----------------
+render_footer()
