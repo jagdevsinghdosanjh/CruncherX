@@ -9,6 +9,8 @@ from auth import (
     supabase_sign_up,
 )
 from backend.supabase_client import get_supabase_client
+st.write("KEY LOADED:", st.secrets.get("SUPABASE_KEY"))
+
 
 # ---------------------------------------------------------
 # MUST BE FIRST STREAMLIT COMMAND
