@@ -1,0 +1,3 @@
+APP_NAME = "CruncherX"
+THEME_PRIMARY = "#39FF14"
+THEME_BG = "#000000"
